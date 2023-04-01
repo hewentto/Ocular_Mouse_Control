@@ -20,14 +20,13 @@ def draw_face_connections(image, face_landmarks):
 
 
     # Define landmark indices for eyebrows
-    eyebrow_landmarks = [105, 66, 107, 336, 333]
+    eyebrow_landmarks = [105, 107, 336, 334]
 
     dot_radius = 2
     dot_thickness = -1
     # Draw circles for eyebrow landmarks
     for landmark_index in eyebrow_landmarks:
-        x, y = int(face_landmarks.landmark[landmark_index].x * image.shape[1]), \
-               int(face_landmarks.landmark[landmark_index].y * image.shape[0])
+        x, y = int(face_landmarks.landmark[landmark_index].x * image.shape[1]), int(face_landmarks.landmark[landmark_index].y * image.shape[0])
         dot_color = (255, 0, 255)
         cv.circle(image, (x, y), dot_radius, dot_color, dot_thickness)
 
@@ -56,10 +55,30 @@ def draw_face_connections(image, face_landmarks):
     center_radius = 3
     center_thickness = -1
     cv.circle(image, (center_x, center_y), center_radius, center_color, center_thickness)
+    # draw line from cennter of head to nose, and eyes and eyebrows
+    cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
+    cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
+    cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+
+    # Calculate distance of each line
+    nose_to_center = np.sqrt((nose_x - center_x) ** 2 + (nose_y - center_y) ** 2)
+    left_eye_to_center = np.sqrt((left_eye_x - center_x) ** 2 + (left_eye_y - center_y) ** 2)
+    right_eye_to_center = np.sqrt((right_eye_x - center_x) ** 2 + (right_eye_y - center_y) ** 2)
+    nose_to_left_eye = np.sqrt((nose_x - left_eye_x) ** 2 + (nose_y - left_eye_y) ** 2)
+    nose_to_right_eye = np.sqrt((nose_x - right_eye_x) ** 2 + (nose_y - right_eye_y) ** 2)
+    left_eye_to_right_eye = np.sqrt((left_eye_x - right_eye_x) ** 2 + (left_eye_y - right_eye_y) ** 2)
+
+    # on click, print each distance
+    def print_distances():
+        print("nose_to_center", nose_to_center)
+        print("left_eye_to_center", left_eye_to_center)
+        print("right_eye_to_center", right_eye_to_center)
+        print("nose_to_left_eye", nose_to_left_eye)
+        print("nose_to_right_eye", nose_to_right_eye)
+        print("left_eye_to_right_eye", left_eye_to_right_eye)
 
 
-
-
+    
 
 mp_face_mesh = mp.solutions.face_mesh
 cap = cv.VideoCapture(0)
