@@ -6728,3 +6728,4 @@ myenv/Scripts/python.exe
 myenv/Scripts/pythonw.exe
 myenv/Scripts/ttx.exe
 myenv/share/man/man1/ttx.1
+sped.py
