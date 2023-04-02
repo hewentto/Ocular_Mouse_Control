@@ -1,34 +1,39 @@
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
-
-def arrange_data(landmark_list, line_list):
+def arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y):
     """
-    Arranges the data into a dataframe with labeled columns
+    Arranges the data into a dataframe with labeled columns, preprocesses it, and saves it to a CSV file
     Args:
-        landmark_list: list of landmark coordinates
-        line_list: list of line coordinates
+        landmark_dict: dictionary of landmark coordinates
+        distance_dict: dictionary of line distances
+        screen_width: screen width in pixels
+        screen_height: screen height in pixels
+        x: x coordinate in pixels
+        y: y coordinate in pixels
+        file_path: file path to save the preprocessed data
     Returns:
-        a ready to save dataframe"""
+        None
+    """
 
-    # create a list of column names
-    landmark_columns = []
-    for i in range(0, len(landmark_list)):
-        landmark_columns.append(f"landmark_{i}")
+    # filepath
+    file_path = 'data.csv'
+    # Combine the dictionaries
+    combined_dict = {**landmark_dict, **distance_dict}
 
-    line_columns = []
-    for i in range(0, len(line_list)):
-        line_columns.append(f"line_{i}")
+    # Create a DataFrame from the combined dictionary
+    df = pd.DataFrame(combined_dict, index=[0])
 
-    # create a list of data
-    data = landmark_list + line_list
+    # Add screen dimensions, x, and y coordinates as additional columns
+    df['screen_width'] = screen_width
+    df['screen_height'] = screen_height
+    df['x'] = x
+    df['y'] = y
 
-    # create a dataframe
-    df = pd.DataFrame(data, columns=["x", "y", "z"])
+    # Normalize or standardize the numerical features
+    scaler = StandardScaler()
+    numerical_features = ['screen_width', 'screen_height', 'x', 'y']
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
 
-    # transpose the dataframe
-    df = df.T
-
-    # rename the columns
-    df.columns = landmark_columns + line_columns
-
-    return df
+    # Save the preprocessed data to a CSV file
+    df.to_csv(file_path, index=False)

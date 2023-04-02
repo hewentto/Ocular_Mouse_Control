@@ -54,82 +54,106 @@ def draw_landmarks(image, results):
     center_radius = 3
     center_thickness = -1
     center_color = (255, 0, 0)
+    labels = ['center_nose', 'center_left_eye', 'center_right_eye', 'nose_left_eye', 'nose_right_eye', 'left_right_eye', 'left_image_edge', 'right_image_edge']
+    landmark_labels = ['nose', 'left_eye', 'right_eye', 'forehead', 'chin', 'left_cheek', 'right_cheek', 'center']
+
+
+
+    def extract_landmarks(face_landmarks, image_shape):
+        landmark_dict = {}
+
+        nose_x, nose_y, nose_z = int(face_landmarks.landmark[nose_tip_landmark_index].x * image_shape[1]), \
+                                int(face_landmarks.landmark[nose_tip_landmark_index].y * image_shape[0]), \
+                                face_landmarks.landmark[nose_tip_landmark_index].z
+        landmark_dict[landmark_labels[0]] = (nose_x, nose_y, nose_z)
+
+        left_eye_x, left_eye_y, left_eye_z = int(face_landmarks.landmark[473].x * image_shape[1]), \
+                                            int(face_landmarks.landmark[473].y * image_shape[0]), \
+                                            face_landmarks.landmark[473].z
+        landmark_dict[landmark_labels[1]] = (left_eye_x, left_eye_y, left_eye_z)
+
+        right_eye_x, right_eye_y, right_eye_z = int(face_landmarks.landmark[468].x * image_shape[1]), \
+                                                int(face_landmarks.landmark[468].y * image_shape[0]), \
+                                                face_landmarks.landmark[468].z
+        landmark_dict[landmark_labels[2]] = (right_eye_x, right_eye_y, right_eye_z)
+
+        additional_landmark_indices = {
+            landmark_labels[3]: forehead_landmark_index,
+            landmark_labels[4]: chin_landmark_index,
+            landmark_labels[5]: left_cheek_landmark_index,
+            landmark_labels[6]: right_cheek_landmark_index
+        }
+
+        for label, index in additional_landmark_indices.items():
+            x, y, z = int(face_landmarks.landmark[index].x * image_shape[1]), \
+                    int(face_landmarks.landmark[index].y * image_shape[0]), \
+                    int(face_landmarks.landmark[index].z * image_shape[0])
+            landmark_dict[label] = (x, y, z)
+
+        center_x = int(sum(x for x, y, z in landmark_dict.values()) / len(landmark_dict))
+        center_y = int(sum(y for x, y, z in landmark_dict.values()) / len(landmark_dict))
+        center_z = sum(z for x, y, z in landmark_dict.values()) / len(landmark_dict)
+
+        landmark_dict[landmark_labels[7]] = (center_x, center_y, center_z)
+
+        return landmark_dict
+
+    # save euclidean distance for each line
+    def euclidean_distance(p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+    def compute_distances(landmark_dict, image_shape, labels):
+        distance_dict = {}
+
+        center_x, center_y = landmark_dict['center'][:2]
+        nose_x, nose_y = landmark_dict['nose'][:2]
+        left_eye_x, left_eye_y = landmark_dict['left_eye'][:2]
+        right_eye_x, right_eye_y = landmark_dict['right_eye'][:2]
+
+        distance_dict[labels[0]] = euclidean_distance((center_x, center_y), (nose_x, nose_y))
+        distance_dict[labels[1]] = euclidean_distance((center_x, center_y), (left_eye_x, left_eye_y))
+        distance_dict[labels[2]] = euclidean_distance((center_x, center_y), (right_eye_x, right_eye_y))
+        distance_dict[labels[3]] = euclidean_distance((nose_x, nose_y), (left_eye_x, left_eye_y))
+        distance_dict[labels[4]] = euclidean_distance((nose_x, nose_y), (right_eye_x, right_eye_y))
+        distance_dict[labels[5]] = euclidean_distance((left_eye_x, left_eye_y), (right_eye_x, right_eye_y))
+        distance_dict[labels[6]] = euclidean_distance((left_eye_x, left_eye_y), (image_shape[1], left_eye_y))
+        distance_dict[labels[7]] = euclidean_distance((right_eye_x, right_eye_y), (0, right_eye_y))
+
+        return distance_dict
+
+
 
 
     for face_landmarks in results.multi_face_landmarks:
-        nose_x, nose_y, nose_z = int(face_landmarks.landmark[nose_tip_landmark_index].x * image.shape[1]), \
-                                 int(face_landmarks.landmark[nose_tip_landmark_index].y * image.shape[0]), \
-                                 face_landmarks.landmark[nose_tip_landmark_index].z
+        landmark_dict = extract_landmarks(face_landmarks, image.shape)
+        distance_dict = compute_distances(landmark_dict, image.shape, labels)
 
-        left_eye_x, left_eye_y, left_eye_z = int(face_landmarks.landmark[473].x * image.shape[1]), \
-                                             int(face_landmarks.landmark[473].y * image.shape[0]), \
-                                             face_landmarks.landmark[473].z
-        right_eye_x, right_eye_y, right_eye_z = int(face_landmarks.landmark[468].x * image.shape[1]), \
-                                                 int(face_landmarks.landmark[468].y * image.shape[0]), \
-                                                 face_landmarks.landmark[468].z
-
-        landmark_list.extend(
-            (
-                [nose_x, nose_y, nose_z],
-                [left_eye_x, left_eye_y, left_eye_z],
-                [right_eye_x, right_eye_y, right_eye_z],
-            )
-        )
-        # Define landmark indices for eyebrows
-        eyebrow_landmarks = [105, 107, 336, 334]
-
-        # Draw circles for eyebrow landmarks
-        for landmark_index in eyebrow_landmarks:
-            x, y, z = int(face_landmarks.landmark[landmark_index].x * image.shape[1]), int(
-                face_landmarks.landmark[landmark_index].y * image.shape[0]),int(
-                face_landmarks.landmark[landmark_index].z * image.shape[0])
-            dot_color = (255, 0, 255)
-            landmark_list.append([x, y, z])
-            cv.circle(image, (x, y), dot_radius, dot_color, dot_thickness)
-
-
-        # Get the landmark coordinates
-        landmarks = [(nose_x, nose_y, nose_z), (left_eye_x, left_eye_y, left_eye_z), (right_eye_x, right_eye_y, right_eye_z)]
-        for index in [forehead_landmark_index, chin_landmark_index, left_cheek_landmark_index, right_cheek_landmark_index]:
-            x, y, z = int(face_landmarks.landmark[index].x * image.shape[1]), int(face_landmarks.landmark[index].y * image.shape[0]), int(face_landmarks.landmark[index].z * image.shape[0])
-            landmark_list.append([x, y, z])
-            landmarks.append((x, y, z))
-
-        # Calculate the average position of the landmarks
-        center_x = int(sum(x for x, y, z in landmarks) / len(landmarks))
-        center_y = int(sum(y for x, y, z in landmarks) / len(landmarks))
-        center_z = sum(z for x, y, z in landmarks) / len(landmarks)
-
-        landmark_list.append([center_x, center_y, center_z])
 
         # Draw a circle at the calculated center of the head
+        center_x, center_y, _ = landmark_dict['center']
         cv.circle(image, (center_x, center_y), center_radius, center_color, center_thickness)
 
         # Draw lines from center of head to nose and eyes
+        nose_x, nose_y, _ = landmark_dict['nose']
+        left_eye_x, left_eye_y, _ = landmark_dict['left_eye']
+        right_eye_x, right_eye_y, _ = landmark_dict['right_eye']
+
         cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
         cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
         cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+
         # Draw lines for nose and eye landmarks
         cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
         cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
         cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # save euclidean distance for each line
-        def euclidean_distance(p1, p2):
-            x1, y1 = p1
-            x2, y2 = p2
-            return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+        # Line from eyes to edge of screen
+        cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
+        cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
 
-        line_list = []
-        line_list.append(euclidean_distance((center_x, center_y), (nose_x, nose_y)))
-        line_list.append(euclidean_distance((center_x, center_y), (left_eye_x, left_eye_y)))
-        line_list.append(euclidean_distance((center_x, center_y), (right_eye_x, right_eye_y)))
-        line_list.append(euclidean_distance((nose_x, nose_y), (left_eye_x, left_eye_y)))
-        line_list.append(euclidean_distance((nose_x, nose_y), (right_eye_x, right_eye_y)))
-        line_list.append(euclidean_distance((left_eye_x, left_eye_y), (right_eye_x, right_eye_y)))
-
-        
-        return landmark_list, line_list
+    return landmark_dict, distance_dict
 
 
 def main():
@@ -141,11 +165,8 @@ def main():
     def on_click(x, y, button, pressed):
         if button == Button.left and pressed:
             print(f"Left button of the mouse is clicked - position ({x}, {y})")
-        if landmark_list and line_list is not None:
-            row_data = [
-                coord for point in landmark_list for coord in point
-            ] + list(line_list)
-            print(row_data)
+        if landmark_dict and distance_dict is not None:
+            parse.arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y)
 
     mouse = Controller()
     mouse_listener = initialize_mouse_listener(on_click)
@@ -162,7 +183,7 @@ def main():
 
         results, image = get_landmarks(image, face_mesh)
 
-        landmark_list, line_list = draw_landmarks(image, results)
+        landmark_dict, distance_dict = draw_landmarks(image, results)
 
         cv.imshow('MediaPipe Face Mesh', cv.flip(image, 1))
         key = cv.waitKey(1)

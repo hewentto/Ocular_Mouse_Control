@@ -10312,3 +10312,4 @@ myenv/Lib/site-packages/pytz-2023.3.dist-info/RECORD
 myenv/Lib/site-packages/pytz-2023.3.dist-info/top_level.txt
 myenv/Lib/site-packages/pytz-2023.3.dist-info/WHEEL
 myenv/Lib/site-packages/pytz-2023.3.dist-info/zip-safe
+__pycache__/parse.cpython-310.pyc
