@@ -3,37 +3,31 @@ from sklearn.preprocessing import StandardScaler
 
 def arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y):
     """
-    Arranges the data into a dataframe with labeled columns, preprocesses it, and saves it to a CSV file
+    Arranges the data into a dataframe with labeled columns
     Args:
         landmark_dict: dictionary of landmark coordinates
         distance_dict: dictionary of line distances
-        screen_width: screen width in pixels
-        screen_height: screen height in pixels
-        x: x coordinate in pixels
-        y: y coordinate in pixels
-        file_path: file path to save the preprocessed data
     Returns:
-        None
-    """
+        a ready to save dataframe"""
 
-    # filepath
+    # file path
     file_path = 'data.csv'
+
     # Combine the dictionaries
-    combined_dict = {**landmark_dict, **distance_dict}
+    combined_dict = {
+        **landmark_dict,
+        **distance_dict,
+        'screen_width': screen_width,
+        'screen_height': screen_height,
+        'x': x,
+        'y': y,
+    }
 
-    # Create a DataFrame from the combined dictionary
-    df = pd.DataFrame(combined_dict, index=[0])
+    # Append the combined_dict to a list
+    data_list = [combined_dict]
 
-    # Add screen dimensions, x, and y coordinates as additional columns
-    df['screen_width'] = screen_width
-    df['screen_height'] = screen_height
-    df['x'] = x
-    df['y'] = y
+    # Create a DataFrame from the list of dictionaries
+    df = pd.DataFrame(data_list)
 
-    # Normalize or standardize the numerical features
-    scaler = StandardScaler()
-    numerical_features = ['screen_width', 'screen_height', 'x', 'y']
-    df[numerical_features] = scaler.fit_transform(df[numerical_features])
-
-    # Save the preprocessed data to a CSV file
-    df.to_csv(file_path, index=False)
+    # add the data row to the csv file
+    df.to_csv(file_path, mode='a', header=False, index=False)

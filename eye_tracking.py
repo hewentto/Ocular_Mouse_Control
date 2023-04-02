@@ -98,6 +98,7 @@ def draw_landmarks(image, results):
 
         return landmark_dict
 
+
     # save euclidean distance for each line
     def euclidean_distance(p1, p2):
         x1, y1 = p1
