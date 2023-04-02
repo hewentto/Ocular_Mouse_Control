@@ -157,45 +157,65 @@ def draw_landmarks(image, results):
     return landmark_dict, distance_dict
 
 
+# Define the main function
 def main():
+    # Define the screen size
     screen_width = 1920
     screen_height = 1080
 
+    # Initialize the face mesh
     face_mesh = initialize_face_mesh()
 
+    # Define a function to be called when the mouse is clicked
     def on_click(x, y, button, pressed):
         if button == Button.left and pressed:
+            # Print the position of the mouse click
             print(f"Left button of the mouse is clicked - position ({x}, {y})")
-        if landmark_dict and distance_dict is not None:
-            parse.arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y)
 
+            # If landmark_dict and distance_dict are not None, call parse.arrange_data
+            if landmark_dict and distance_dict is not None:
+                parse.arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y)
+
+    # Create a mouse controller and initialize a mouse listener
     mouse = Controller()
     mouse_listener = initialize_mouse_listener(on_click)
+
+    # Create a thread for the mouse listener and start it
     mouse_thread = threading.Thread(target=start_mouse_listener, args=(mouse_listener,))
     mouse_thread.start()
 
+    # Initialize the camera
     cap = cv.VideoCapture(0)
 
+    # Loop until the 'q' key is pressed
     while True:
+        # Read a frame from the camera
         success, image = cap.read()
         if not success:
             print("Ignoring empty camera frame.")
             continue
 
+        # Get the landmarks from the face mesh and draw them on the image
         results, image = get_landmarks(image, face_mesh)
-
         landmark_dict, distance_dict = draw_landmarks(image, results)
 
+        # Show the image on the screen and wait for a key press
         cv.imshow('MediaPipe Face Mesh', cv.flip(image, 1))
         key = cv.waitKey(1)
 
+        # If the 'q' key is pressed, break the loop
         if key == ord('q'):
             break
 
+    # Stop the mouse listener and join the mouse thread
     stop_mouse_listener(mouse_listener)
     mouse_thread.join()
+
+    # Release the camera and close all windows
     cap.release()
     cv.destroyAllWindows()
 
+
+# If this file is being run as the main program, call the main function
 if __name__ == "__main__":
     main()
