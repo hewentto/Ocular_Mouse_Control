@@ -6,6 +6,8 @@ import csv
 import math
 import parse
 
+# Set the DeviceID of the camera
+device_id = "USB\VID_1D6C&PID_1278&MI_00\8&1ACFF732&0&0000"
 
 def initialize_face_mesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5):
     return mp.solutions.face_mesh.FaceMesh(
@@ -55,25 +57,25 @@ def draw_landmarks(image, results):
     center_thickness = -1
     center_color = (255, 0, 0)
     labels = ['center_nose', 'center_left_eye', 'center_right_eye', 'nose_left_eye', 'nose_right_eye', 'left_right_eye', 'left_image_edge', 'right_image_edge']
-    landmark_labels = ['nose', 'left_eye', 'right_eye', 'forehead', 'chin', 'left_cheek', 'right_cheek', 'center']
 
 
 
     def extract_landmarks(face_landmarks, image_shape):
+        landmark_labels = ['nose', 'left_eye', 'right_eye', 'forehead', 'chin', 'left_cheek', 'right_cheek', 'center']
         landmark_dict = {}
 
-        nose_x, nose_y, nose_z = int(face_landmarks.landmark[nose_tip_landmark_index].x * image_shape[1]), \
-                                int(face_landmarks.landmark[nose_tip_landmark_index].y * image_shape[0]), \
+        nose_x, nose_y, nose_z = face_landmarks.landmark[nose_tip_landmark_index].x * image_shape[1], \
+                                face_landmarks.landmark[nose_tip_landmark_index].y * image_shape[0], \
                                 face_landmarks.landmark[nose_tip_landmark_index].z
         landmark_dict[landmark_labels[0]] = (nose_x, nose_y, nose_z)
 
-        left_eye_x, left_eye_y, left_eye_z = int(face_landmarks.landmark[473].x * image_shape[1]), \
-                                            int(face_landmarks.landmark[473].y * image_shape[0]), \
+        left_eye_x, left_eye_y, left_eye_z = face_landmarks.landmark[473].x * image_shape[1], \
+                                            face_landmarks.landmark[473].y * image_shape[0], \
                                             face_landmarks.landmark[473].z
         landmark_dict[landmark_labels[1]] = (left_eye_x, left_eye_y, left_eye_z)
 
-        right_eye_x, right_eye_y, right_eye_z = int(face_landmarks.landmark[468].x * image_shape[1]), \
-                                                int(face_landmarks.landmark[468].y * image_shape[0]), \
+        right_eye_x, right_eye_y, right_eye_z = face_landmarks.landmark[468].x * image_shape[1], \
+                                                face_landmarks.landmark[468].y * image_shape[0], \
                                                 face_landmarks.landmark[468].z
         landmark_dict[landmark_labels[2]] = (right_eye_x, right_eye_y, right_eye_z)
 
@@ -85,13 +87,13 @@ def draw_landmarks(image, results):
         }
 
         for label, index in additional_landmark_indices.items():
-            x, y, z = int(face_landmarks.landmark[index].x * image_shape[1]), \
-                    int(face_landmarks.landmark[index].y * image_shape[0]), \
-                    int(face_landmarks.landmark[index].z * image_shape[0])
+            x, y, z = face_landmarks.landmark[index].x * image_shape[1], \
+                    face_landmarks.landmark[index].y * image_shape[0], \
+                    face_landmarks.landmark[index].z * image_shape[0]
             landmark_dict[label] = (x, y, z)
 
-        center_x = int(sum(x for x, y, z in landmark_dict.values()) / len(landmark_dict))
-        center_y = int(sum(y for x, y, z in landmark_dict.values()) / len(landmark_dict))
+        center_x = sum(x for x, y, z in landmark_dict.values()) / len(landmark_dict)
+        center_y = sum(y for x, y, z in landmark_dict.values()) / len(landmark_dict)
         center_z = sum(z for x, y, z in landmark_dict.values()) / len(landmark_dict)
 
         landmark_dict[landmark_labels[7]] = (center_x, center_y, center_z)
@@ -134,25 +136,25 @@ def draw_landmarks(image, results):
 
         # Draw a circle at the calculated center of the head
         center_x, center_y, _ = landmark_dict['center']
-        cv.circle(image, (center_x, center_y), center_radius, center_color, center_thickness)
+        # cv.circle(image, (int(center_x), int(center_y)), center_radius, center_color, center_thickness)
 
         # Draw lines from center of head to nose and eyes
         nose_x, nose_y, _ = landmark_dict['nose']
         left_eye_x, left_eye_y, _ = landmark_dict['left_eye']
         right_eye_x, right_eye_y, _ = landmark_dict['right_eye']
 
-        cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
-        cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        # cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
+        # cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
+        # cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # Draw lines for nose and eye landmarks
-        cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
-        cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        # # Draw lines for nose and eye landmarks
+        # cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
+        # cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        # cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # Line from eyes to edge of screen
-        cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
-        cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
+        # # Line from eyes to edge of screen
+        # cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
+        # cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
 
     return landmark_dict, distance_dict
 
@@ -177,6 +179,7 @@ def main():
                 parse.arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y)
 
     # Create a mouse controller and initialize a mouse listener
+
     mouse = Controller()
     mouse_listener = initialize_mouse_listener(on_click)
 
@@ -185,7 +188,7 @@ def main():
     mouse_thread.start()
 
     # Initialize the camera
-    cap = cv.VideoCapture(0)
+    cap = cv.VideoCapture(int(device_id.split("&")[-1], 16))
 
     # Loop until the 'q' key is pressed
     while True:
