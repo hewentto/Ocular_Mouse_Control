@@ -3,23 +3,29 @@ from sklearn.preprocessing import StandardScaler
 import pyautogui
 import joblib
 import math
+from tensorflow.keras.models import load_model
+import numpy as np
 
 
 
+# Load the scaler before calling move_mouse
+scaler = joblib.load("scaler.pkl")
+feature_names = joblib.load("feature_names.pkl")
+loaded_model = load_model("my_model.h5")
 
+def predict_coordinates(input_data, scaler):
+    # Load the saved Keras model
+    input_data = input_data.astype(float)
+    # input_data.columns = feature_names
+    input_data_scaled = scaler.transform(input_data.values)
 
-def predict_coordinates(input_data):
+    # Predict the coordinates using the loaded model
+    predictions = loaded_model.predict(input_data_scaled, verbose=0)
 
-    regressor_x = joblib.load("best_model_x.pkl")
-    regressor_y = joblib.load("best_model_y.pkl")
+    # Extract x and y predictions
+    x_pred, y_pred = predictions[0]
 
-
-    input_data = input_data.drop('target', axis=1)
-
-    x_pred = regressor_x.predict(input_data)[0]
-    y_pred = regressor_y.predict(input_data)[0]
     return x_pred, y_pred
-
 
 def move_mouse(landmark_dict, screen_width, screen_height, x, y):
     """
@@ -31,10 +37,15 @@ def move_mouse(landmark_dict, screen_width, screen_height, x, y):
         a ready to save dataframe"""
     
     df = arrange_data(landmark_dict, screen_width, screen_height, x, y)
+    
+    # drop target
+    df.drop('target', axis=1, inplace=True)
 
-    x_pred, y_pred = predict_coordinates(df)
+    x_pred, y_pred = predict_coordinates(df, scaler)
+
 
     pyautogui.moveTo(x_pred, y_pred, duration=0)
+
 
 
 def arrange_data(landmark_dict, screen_width, screen_height, x, y):
