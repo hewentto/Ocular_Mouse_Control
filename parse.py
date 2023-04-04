@@ -5,6 +5,7 @@ import joblib
 import math
 from tensorflow.keras.models import load_model
 import numpy as np
+import numpy as np
 
 
 
@@ -12,39 +13,46 @@ import numpy as np
 scaler = joblib.load("scaler.pkl")
 feature_names = joblib.load("feature_names.pkl")
 loaded_model = load_model("my_model.h5")
+svr_x = joblib.load("best_model_x.pkl")
+svr_y = joblib.load("best_model_y.pkl")
 
 def predict_coordinates(input_data, scaler):
-    # Load the saved Keras model
-    input_data = input_data.astype(float)
-    # input_data.columns = feature_names
-    input_data_scaled = scaler.transform(input_data.values)
-
-    # Predict the coordinates using the loaded model
-    predictions = loaded_model.predict(input_data_scaled, verbose=0)
-
-    # Extract x and y predictions
-    x_pred, y_pred = predictions[0]
+    """Predicts the coordinates of the mouse pointer using the trained model"""
+    x_pred = svr_x.predict(input_data)
+    y_pred = svr_y.predict(input_data)
 
     return x_pred, y_pred
 
+
+# Initialize a list to keep track of the previous predicted coordinates
+prev_coords = []
+
+def predict_and_smooth_coordinates(input_data, scaler, n=5):
+    """Predicts the coordinates of the mouse pointer using the trained model and applies a low-pass filter"""
+    x_pred, y_pred = predict_coordinates(input_data, scaler)
+
+    # Add the current predicted coordinates to the list
+    prev_coords.append((x_pred, y_pred))
+
+    # If the list is longer than n, remove the oldest coordinates
+    if len(prev_coords) > n:
+        prev_coords.pop(0)
+
+    # Take the average of the previous n predicted coordinates
+    x_smoothed = np.mean([coord[0] for coord in prev_coords])
+    y_smoothed = np.mean([coord[1] for coord in prev_coords])
+
+    return x_smoothed, y_smoothed
+
+# Update move_mouse function to use predict_and_smooth_coordinates
 def move_mouse(landmark_dict, screen_width, screen_height, x, y):
-    """
-    Arranges the data into a dataframe with labeled columns
-    Args:
-        landmark_dict: dictionary of landmark coordinates
-        distance_dict: dictionary of line distances
-    Returns:
-        a ready to save dataframe"""
-    
     df = arrange_data(landmark_dict, screen_width, screen_height, x, y)
-    
-    # drop target
     df.drop('target', axis=1, inplace=True)
 
-    x_pred, y_pred = predict_coordinates(df, scaler)
+    x_smoothed, y_smoothed = predict_and_smooth_coordinates(df, scaler)
 
+    pyautogui.moveTo(x_smoothed, y_smoothed, duration=0)
 
-    pyautogui.moveTo(x_pred, y_pred, duration=0)
 
 
 
