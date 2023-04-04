@@ -8,6 +8,8 @@ n_trees = 1000
 # Read CSV file
 data = pd.read_csv("data.csv")
 
+# shuffle the data
+data = data.sample(frac=1).reset_index(drop=True)
 # Separate feature and target variables
 X = data.drop(columns=["target"])
 y = data["target"].apply(lambda target: eval(target))  # Convert string coordinates to tuples

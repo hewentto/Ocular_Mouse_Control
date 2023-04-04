@@ -53,11 +53,6 @@ def draw_landmarks(image, results):
     chin_landmark_index = 152
     left_cheek_landmark_index = 234
     right_cheek_landmark_index = 454
-    center_radius = 3
-    center_thickness = -1
-    center_color = (255, 0, 0)
-    labels = ['center_nose', 'center_left_eye', 'center_right_eye', 'nose_left_eye', 'nose_right_eye', 'left_right_eye', 'left_image_edge', 'right_image_edge']
-
 
 
     def extract_landmarks(face_landmarks, image_shape):
@@ -101,38 +96,8 @@ def draw_landmarks(image, results):
         return landmark_dict
 
 
-    # save euclidean distance for each line
-    def euclidean_distance(p1, p2):
-        x1, y1 = p1
-        x2, y2 = p2
-        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-    def compute_distances(landmark_dict, image_shape, labels):
-        distance_dict = {}
-
-        center_x, center_y = landmark_dict['center'][:2]
-        nose_x, nose_y = landmark_dict['nose'][:2]
-        left_eye_x, left_eye_y = landmark_dict['left_eye'][:2]
-        right_eye_x, right_eye_y = landmark_dict['right_eye'][:2]
-
-        distance_dict[labels[0]] = euclidean_distance((center_x, center_y), (nose_x, nose_y))
-        distance_dict[labels[1]] = euclidean_distance((center_x, center_y), (left_eye_x, left_eye_y))
-        distance_dict[labels[2]] = euclidean_distance((center_x, center_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[3]] = euclidean_distance((nose_x, nose_y), (left_eye_x, left_eye_y))
-        distance_dict[labels[4]] = euclidean_distance((nose_x, nose_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[5]] = euclidean_distance((left_eye_x, left_eye_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[6]] = euclidean_distance((left_eye_x, left_eye_y), (image_shape[1], left_eye_y))
-        distance_dict[labels[7]] = euclidean_distance((right_eye_x, right_eye_y), (0, right_eye_y))
-
-        return distance_dict
-
-
-
-
     for face_landmarks in results.multi_face_landmarks:
         landmark_dict = extract_landmarks(face_landmarks, image.shape)
-        distance_dict = compute_distances(landmark_dict, image.shape, labels)
-
 
         # Draw a circle at the calculated center of the head
         center_x, center_y, _ = landmark_dict['center']
@@ -156,7 +121,7 @@ def draw_landmarks(image, results):
         # cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
         # cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
 
-    return landmark_dict, distance_dict
+    return landmark_dict
 
 
 # Define the main function
@@ -175,8 +140,8 @@ def main():
             print(f"Left button of the mouse is clicked - position ({x}, {y})")
 
             # If landmark_dict and distance_dict are not None, call parse.arrange_data
-            if landmark_dict and distance_dict is not None:
-                parse.arrange_data(landmark_dict, distance_dict, screen_width, screen_height, x, y)
+            if landmark_dict is not None:
+                parse.save_data(landmark_dict, screen_width, screen_height, x, y)
 
     # Create a mouse controller and initialize a mouse listener
 
@@ -200,7 +165,7 @@ def main():
 
         # Get the landmarks from the face mesh and draw them on the image
         results, image = get_landmarks(image, face_mesh)
-        landmark_dict, distance_dict = draw_landmarks(image, results)
+        landmark_dict = draw_landmarks(image, results)
 
         # Show the image on the screen and wait for a key press
         cv.imshow('MediaPipe Face Mesh', cv.flip(image, 1))
