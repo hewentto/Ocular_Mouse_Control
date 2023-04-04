@@ -70,13 +70,13 @@ def user_select(window_surface,newuser):
                     navigate = pygame.mixer.Sound('sound/navigating_menu.ogg')
                     navigate.play()
                     if event.ui_element == user1_button:
-                        Calibration_page_MouSee.calibrate(window_surface)
+                        Calibration_page_MouSee.calibrate(window_surface,0)
                     if event.ui_element == user2_button:
-                        Calibration_page_MouSee.calibrate(window_surface)
+                        Calibration_page_MouSee.calibrate(window_surface,1)
                     if event.ui_element == create_new_button and newuser == None:
                         Create_new_user.new_user(window_surface)
                     else:
-                        Calibration_page_MouSee.calibrate(window_surface)
+                        Calibration_page_MouSee.calibrate(window_surface,2)
             
 
             level_manager.process_events(event)

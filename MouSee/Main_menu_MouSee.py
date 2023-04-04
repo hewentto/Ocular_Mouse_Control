@@ -6,7 +6,7 @@ import User_select_MouSee
 import Training_page_MouSee
 import Interactive_Mode
 
-def main_menu(window_surface):
+def main_menu(window_surface,user):
     pygame.init()
 
     # pygame.mixer.init()
@@ -65,9 +65,9 @@ def main_menu(window_surface):
                     navigate = pygame.mixer.Sound('sound/navigating_menu.ogg')
                     navigate.play()
                     if event.ui_element == button1:
-                        Training_page_MouSee.training(window_surface,1)
+                        Training_page_MouSee.training(window_surface,1,user)
                     if event.ui_element == button2:
-                        Training_page_MouSee.training(window_surface,2)
+                        Training_page_MouSee.training(window_surface,2,user)
                     if event.ui_element == button3:
                         User_select_MouSee.user_select(window_surface,None)
 
