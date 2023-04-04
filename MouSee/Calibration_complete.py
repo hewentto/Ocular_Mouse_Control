@@ -6,7 +6,7 @@ from pygame import mixer
 from os import  path
 import Main_menu_MouSee
 
-def endScreen(score, window_surface, mode,user):
+def cal_complete(window_surface, mode,user):
     pygame.init()
 
     pygame.mixer.init()
@@ -46,14 +46,14 @@ def endScreen(score, window_surface, mode,user):
     elif mode == 1:
         title = text_format("Training Completed", None, 90, blue)
     else:
-        title = text_format("error", None, 90, blue)
+        title = text_format("Calibration Completed", None, 90, blue)
 
 
     title_rect = title.get_rect()
     subtitle_rect = subtitle.get_rect()
 
-    back_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((50, 545), (150, 50)),
-                                                text='Main Menu',
+    back_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width//2 - 75, 100), (150, 50)),
+                                                text='Continue',
                                                 manager=end_manager)
     
     

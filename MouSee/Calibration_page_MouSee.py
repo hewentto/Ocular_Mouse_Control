@@ -7,7 +7,7 @@ import Calibration_page_MouSee
 import Training_page_MouSee
 import User_select_MouSee
 
-def calibrate(window_surface):
+def calibrate(window_surface,user):
     pygame.init()
 
     # pygame.mixer.init()
@@ -66,9 +66,9 @@ def calibrate(window_surface):
                     navigate = pygame.mixer.Sound('sound/navigating_menu.ogg')
                     navigate.play()
                     if event.ui_element == button1:
-                        Training_page_MouSee.training(window_surface,0)
+                        Training_page_MouSee.training(window_surface,0,user)
                     if event.ui_element == button2:
-                        Main_menu_MouSee.main_menu(window_surface)
+                        Main_menu_MouSee.main_menu(window_surface,user)
                     if event.ui_element == button3:
                         User_select_MouSee.user_select(window_surface,None)
             
