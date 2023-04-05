@@ -40,7 +40,7 @@ pipeline = Pipeline([
 param_grid = {
     'svr__C': np.logspace(-3, 3, 7),
     'svr__epsilon': np.logspace(-3, 3, 7),
-    'svr__kernel': ['linear', 'poly', 'rbf', 'sigmoid']
+    'svr__kernel': ['poly', 'rbf', 'sigmoid']
 }
 
 # Create the GridSearchCV object
