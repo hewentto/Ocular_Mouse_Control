@@ -200,6 +200,9 @@ def run(window_surface,mode,user):
     width = infoObject.current_w
     height = infoObject.current_h
 
+    test_width = 1920
+    test_height = 1080
+
     print(f'w = {width}')
     print(f'h = {height}')
 
@@ -267,14 +270,20 @@ def run(window_surface,mode,user):
 
         # Show the image on the screen and wait for a key press (DONT NEED input monitoring SINCE PYGAME HANDLES EXIT)
         cv.imshow('MediaPipe Face Mesh', cv.flip(image, 1))
-        # key = cv.waitKey(1)
+        key = cv.waitKey(1)
 
-        # # If the 'q' key is pressed, break the loop
-        # if key == ord('q'):
-        #     break
+        # If the 'q' key is pressed, break the loop
+        if key == ord('q'):
+                pygame.quit()
+                # Release the camera and close all windows
+                cap.release()
+                cv.destroyAllWindows()
+
+                sys.exit()
 
         # get mouse x and y to move mouse later
         x, y = pag.position()
+        # print(f'x = {x} y= {y}')
         
         #Render all Items onto pygame window
         window_surface.fill((235,235,235))
@@ -300,16 +309,18 @@ def run(window_surface,mode,user):
 
         #mode move automatically if mode is interactive mode
         if mode == 2:
-            parse_test.move_mouse(landmark_dict, width, height, x, y)
+            if landmark_dict is None or any(
+                key not in landmark_dict
+                for key in ['nose', 'left_eye', 'right_eye']
+            ):
+                continue
+
+            parse_test.move_mouse(landmark_dict, test_width, test_height, x, y)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 is_running = False
                 pygame.quit()
-                # Stop the mouse listener and join the mouse thread
-                # stop_mouse_listener(mouse_listener)
-                # mouse_thread.join()
-
                 # Release the camera and close all windows
                 cap.release()
                 cv.destroyAllWindows()
@@ -328,7 +339,7 @@ def run(window_surface,mode,user):
 
                 # If landmark_dict and  are not None, and not in interative mode save data to csv
                 if mode != 2:
-                    if landmark_dict and distance_dict is not None:
+                    if landmark_dict  is not None:
                         parse_test.save_data(landmark_dict, width, height, x, y,user)
 
                 for k in range(len(circles)):

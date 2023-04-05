@@ -44,11 +44,12 @@ def predict_and_smooth_coordinates(input_data, scaler, n=5):
     return x_smoothed, y_smoothed
 
 # Update move_mouse function to use predict_and_smooth_coordinates
-def move_mouse(landmark_dict, screen_width, screen_height, x, y,):
+def move_mouse(landmark_dict, screen_width, screen_height, x, y):
     df = arrange_data(landmark_dict, screen_width, screen_height, x, y)
-    df.drop('target', axis=1, inplace=True) # type: ignore
+    df.drop('target', axis=1, inplace=True)
 
     x_smoothed, y_smoothed = predict_and_smooth_coordinates(df, scaler)
+    print(f'x = {x_smoothed} y = {y_smoothed}')
 
     pyautogui.moveTo(x_smoothed, y_smoothed, duration=0)
 
