@@ -1,11 +1,8 @@
 import cv2 as cv
 import mediapipe as mp
 from pynput.mouse import Button, Controller, Listener
-import threading
-import csv
-import math
 import parse_test
-
+import pyautogui as pag
 import pygame
 import pygame_gui
 from pygame.locals import *
@@ -112,38 +109,9 @@ def draw_landmarks(image, results):
         return landmark_dict
 
 
-    # save euclidean distance for each line
-    def euclidean_distance(p1, p2):
-        x1, y1 = p1
-        x2, y2 = p2
-        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-    def compute_distances(landmark_dict, image_shape, labels):
-        distance_dict = {}
-
-        center_x, center_y = landmark_dict['center'][:2]
-        nose_x, nose_y = landmark_dict['nose'][:2]
-        left_eye_x, left_eye_y = landmark_dict['left_eye'][:2]
-        right_eye_x, right_eye_y = landmark_dict['right_eye'][:2]
-
-        distance_dict[labels[0]] = euclidean_distance((center_x, center_y), (nose_x, nose_y))
-        distance_dict[labels[1]] = euclidean_distance((center_x, center_y), (left_eye_x, left_eye_y))
-        distance_dict[labels[2]] = euclidean_distance((center_x, center_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[3]] = euclidean_distance((nose_x, nose_y), (left_eye_x, left_eye_y))
-        distance_dict[labels[4]] = euclidean_distance((nose_x, nose_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[5]] = euclidean_distance((left_eye_x, left_eye_y), (right_eye_x, right_eye_y))
-        distance_dict[labels[6]] = euclidean_distance((left_eye_x, left_eye_y), (image_shape[1], left_eye_y))
-        distance_dict[labels[7]] = euclidean_distance((right_eye_x, right_eye_y), (0, right_eye_y))
-
-        return distance_dict
-
-
-
-
     for face_landmarks in results.multi_face_landmarks:
-        landmark_dict = extract_landmarks(face_landmarks, image.shape)
-        distance_dict = compute_distances(landmark_dict, image.shape, labels)
 
+        landmark_dict = extract_landmarks(face_landmarks, image.shape)
 
         # Draw a circle at the calculated center of the head
         center_x, center_y, _ = landmark_dict['center']
@@ -154,20 +122,21 @@ def draw_landmarks(image, results):
         left_eye_x, left_eye_y, _ = landmark_dict['left_eye']
         right_eye_x, right_eye_y, _ = landmark_dict['right_eye']
 
-        # cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
-        # cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        # cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # # Draw lines for nose and eye landmarks
-        # cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        # cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
-        # cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        cv.line(image, (int(center_x), int(center_y)), (int(nose_x), int(nose_y)), line_color, line_thickness)
+        cv.line(image, (int(center_x), int(center_y)), (int(left_eye_x), int(left_eye_y)), line_color, line_thickness)
+        cv.line(image, (int(center_x), int(center_y)), (int(right_eye_x), int(right_eye_y)), line_color, line_thickness)
 
-        # # Line from eyes to edge of screen
-        # cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
-        # cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
+        # Draw lines for nose and eye landmarks
+        cv.line(image, (int(nose_x), int(nose_y)), (int(left_eye_x), int(left_eye_y)), line_color, line_thickness)
+        cv.line(image, (int(nose_x), int(nose_y)), (int(right_eye_x), int(right_eye_y)), line_color, line_thickness)
+        cv.line(image, (int(left_eye_x), int(left_eye_y)), (int(right_eye_x), int(right_eye_y)), line_color, line_thickness)
 
-    return landmark_dict, distance_dict # type: ignore
+        # Line from eyes to edge of screen
+        cv.line(image, (int(left_eye_x), int(left_eye_y)), (image.shape[1], int(left_eye_y)), line_color, line_thickness)
+        cv.line(image, (int(right_eye_x), int(right_eye_y)), (0, int(right_eye_y)), line_color, line_thickness)
+
+    return landmark_dict #type: ignore 
 
 
 # Define the main function
@@ -294,7 +263,7 @@ def run(window_surface,mode,user):
 
         # Get the landmarks from the face mesh and draw them on the image
         results, image = get_landmarks(image, face_mesh)
-        landmark_dict, distance_dict = draw_landmarks(image, results)
+        landmark_dict = draw_landmarks(image, results)
 
         # Show the image on the screen and wait for a key press (DONT NEED input monitoring SINCE PYGAME HANDLES EXIT)
         cv.imshow('MediaPipe Face Mesh', cv.flip(image, 1))
@@ -304,6 +273,8 @@ def run(window_surface,mode,user):
         # if key == ord('q'):
         #     break
 
+        # get mouse x and y to move mouse later
+        x, y = pag.position()
         
         #Render all Items onto pygame window
         window_surface.fill((235,235,235))
@@ -327,6 +298,10 @@ def run(window_surface,mode,user):
             calibrate_circle = CircleClass.Circle(index_calibrate,window_surface,mode)
             calibrate_circle.draw()
 
+        #mode move automatically if mode is interactive mode
+        if mode == 2:
+            parse_test.move_mouse(landmark_dict, width, height, x, y)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 is_running = False
@@ -341,6 +316,7 @@ def run(window_surface,mode,user):
 
                 sys.exit()
 
+            #when mouse clicked
             if event.type == pygame.MOUSEBUTTONDOWN:
                 shoot = pygame.mixer.Sound('sound/gun_shot.ogg')
                 shoot.play()
@@ -350,9 +326,11 @@ def run(window_surface,mode,user):
                 # Print the position of the mouse click
                 print(f"Left button of the mouse is clicked - position ({x}, {y})")
 
-                # If landmark_dict and distance_dict are not None, call parse.arrange_data
-                if landmark_dict and distance_dict is not None:
-                    parse_test.arrange_data(landmark_dict, distance_dict, width, height, x, y,user)
+                # If landmark_dict and  are not None, and not in interative mode save data to csv
+                if mode != 2:
+                    if landmark_dict and distance_dict is not None:
+                        parse_test.save_data(landmark_dict, width, height, x, y,user)
+
                 for k in range(len(circles)):
                     #if click within hitbox of circle
                     if mouseLocation[0] >= circles[k].x-11 and mouseLocation[0] <= circles[k].x+11:

@@ -28,6 +28,7 @@ def training(window_surface,mode,user):
     # pygame.mixer.init()
 
 
+    eye_tracking_test.run(window_surface,mode,user)
 
 
     # # Colors
@@ -102,7 +103,6 @@ def training(window_surface,mode,user):
     #EYE TRACKING INITIALIZATION
     ####################################################
     
-    eye_tracking_test.run(window_surface,mode,user)
     # while is_running:
 
     #     # eye_tracking_test.run(width, height)

@@ -9,12 +9,8 @@ import User_select_MouSee
 
 def calibrate(window_surface,user):
     pygame.init()
+    pygame.mixer.init()
 
-    # pygame.mixer.init()
-
-
-    # pygame.mixer.music.set_volume(0.1)
-    # pygame.mixer.music.play(-1)
     
     width = 900
     height = 600 
@@ -23,7 +19,6 @@ def calibrate(window_surface,user):
     yellow=(255, 255, 0)
     grey = (235, 235, 235)
 
-    # pygame.display.set_caption('MouSee')
 
     background = pygame.Surface((width, height))
     background.fill('grey')
@@ -39,8 +34,9 @@ def calibrate(window_surface,user):
 
     title = text_format("Calibration", None, 90, 'blue')
 
+    #buttons and their sizes/positions
     title_rect = title.get_rect()
-    button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width/2 - 50, height/4), (180, 50)), text='Start Calibration', manager=level_manager)
+    button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width/2 - 75, height/4), (180, 50)), text='Start Calibration', manager=level_manager)
     button2 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width/2 - 50, height/4 + 80), (125, 50)), text='Skip', manager=level_manager)
     button3 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width/2 - 50, height/4 + 160), (125, 50)), text='Go Back', manager=level_manager)
 
@@ -50,9 +46,6 @@ def calibrate(window_surface,user):
 
     clock = pygame.time.Clock()
     is_running = True
-
-    # activeDictionary = dic.adddictanswer
-    # activeProblem = dic.adddictprob
 
     #user input logic
     while is_running:
