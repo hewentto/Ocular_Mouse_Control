@@ -3,16 +3,17 @@ from sklearn.preprocessing import StandardScaler
 import pyautogui
 import joblib
 import math
-from tensorflow.keras.models import load_model
+import tensorflow as tf 
 import numpy as np
-import numpy as np
+import keras
 
 
 
 # Load the scaler before calling move_mouse
 scaler = joblib.load("scaler.pkl")
 feature_names = joblib.load("feature_names.pkl")
-loaded_model = load_model("my_model.h5")
+
+loaded_model = keras.models.load_model("my_model2.keras")
 svr_x = joblib.load("best_model_x.pkl")
 svr_y = joblib.load("best_model_y.pkl")
 

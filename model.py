@@ -6,11 +6,11 @@ import csv
 import math
 import parse
 import pandas as pd
-import pyautogui as pag
+import pyautogui as pag 
 
 
 # Set the DeviceID of the camera
-device_id = "USB\VID_1D6C&PID_1278&MI_00\8&1ACFF732&0&0000"
+device_id = r"USB\VID_1D6C&PID_1278&MI_00\8&1ACFF732&0&0000"
 
 def initialize_face_mesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5):
     return mp.solutions.face_mesh.FaceMesh(
@@ -134,4 +134,4 @@ def main():
 
 # If this file is being run as the main program, call the main function
 if __name__ == "__main__":
-    main()
+    main()  # Call the main function        

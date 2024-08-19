@@ -5,9 +5,8 @@ import threading
 import csv
 import math
 import parse
-
 # Set the DeviceID of the camera
-device_id = "USB\VID_1D6C&PID_1278&MI_00\8&1ACFF732&0&0000"
+device_id = r"USB\VID_1D6C&PID_0103&MI_00\8&C9FD7AC&0&0000"
 
 def initialize_face_mesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5):
     return mp.solutions.face_mesh.FaceMesh(
@@ -101,25 +100,36 @@ def draw_landmarks(image, results):
 
         # Draw a circle at the calculated center of the head
         center_x, center_y, _ = landmark_dict['center']
-        # cv.circle(image, (int(center_x), int(center_y)), center_radius, center_color, center_thickness)
+        center_x = int(center_x)
+        center_y = int(center_y)
+        # cv.circle(image, (center_x, center_y), center_radius, center_color, center_thickness)
 
         # Draw lines from center of head to nose and eyes
         nose_x, nose_y, _ = landmark_dict['nose']
+        nose_x = int(nose_x)
+        nose_y = int(nose_y)
+
         left_eye_x, left_eye_y, _ = landmark_dict['left_eye']
+        left_eye_x = int(left_eye_x)
+        left_eye_y = int(left_eye_y)
+
         right_eye_x, right_eye_y, _ = landmark_dict['right_eye']
+        right_eye_x = int(right_eye_x)
+        right_eye_y = int(right_eye_y)
 
-        # cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
-        # cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        # cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # # Draw lines for nose and eye landmarks
-        # cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
-        # cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
-        # cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        cv.line(image, (center_x, center_y), (nose_x, nose_y), line_color, line_thickness)
+        cv.line(image, (center_x, center_y), (left_eye_x, left_eye_y), line_color, line_thickness)
+        cv.line(image, (center_x, center_y), (right_eye_x, right_eye_y), line_color, line_thickness)
 
-        # # Line from eyes to edge of screen
-        # cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
-        # cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
+        # Draw lines for nose and eye landmarks
+        cv.line(image, (nose_x, nose_y), (left_eye_x, left_eye_y), line_color, line_thickness)
+        cv.line(image, (nose_x, nose_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+        cv.line(image, (left_eye_x, left_eye_y), (right_eye_x, right_eye_y), line_color, line_thickness)
+
+        # Line from eyes to edge of screen
+        cv.line(image, (left_eye_x, left_eye_y), (image.shape[1], left_eye_y), line_color, line_thickness)
+        cv.line(image, (right_eye_x, right_eye_y), (0, right_eye_y), line_color, line_thickness)
 
     return landmark_dict
 
@@ -132,25 +142,6 @@ def main():
 
     # Initialize the face mesh
     face_mesh = initialize_face_mesh()
-
-    # Define a function to be called when the mouse is clicked
-    def on_click(x, y, button, pressed):
-        if button == Button.left and pressed:
-            # Print the position of the mouse click
-            print(f"Left button of the mouse is clicked - position ({x}, {y})")
-
-            # If landmark_dict and distance_dict are not None, call parse.arrange_data
-            if landmark_dict is not None:
-                parse.save_data(landmark_dict, screen_width, screen_height, x, y)
-
-    # Create a mouse controller and initialize a mouse listener
-
-    mouse = Controller()
-    mouse_listener = initialize_mouse_listener(on_click)
-
-    # Create a thread for the mouse listener and start it
-    mouse_thread = threading.Thread(target=start_mouse_listener, args=(mouse_listener,))
-    mouse_thread.start()
 
     # Initialize the camera
     cap = cv.VideoCapture(int(device_id.split("&")[-1], 16))
@@ -174,7 +165,24 @@ def main():
         # If the 'q' key is pressed, break the loop
         if key == ord('q'):
             break
+    # Define a function to be called when the mouse is clicked
+    def on_click(x, y, button, pressed):
+        if button == Button.left and pressed:
+            # Print the position of the mouse click
+            print(f"Left button of the mouse is clicked - position ({x}, {y})")
 
+            # If landmark_dict and distance_dict are not None, call parse.arrange_data
+            if landmark_dict is not None:
+                parse.save_data(landmark_dict, screen_width, screen_height, x, y)
+
+    # Create a mouse controller and initialize a mouse listener
+
+    mouse = Controller()
+    mouse_listener = initialize_mouse_listener(on_click)
+
+    # Create a thread for the mouse listener and start it
+    mouse_thread = threading.Thread(target=start_mouse_listener, args=(mouse_listener,))
+    mouse_thread.start()
     # Stop the mouse listener and join the mouse thread
     stop_mouse_listener(mouse_listener)
     mouse_thread.join()
