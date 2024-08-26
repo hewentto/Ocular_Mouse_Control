@@ -1,36 +1,33 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 import pyautogui
 import joblib
-import math
-import tensorflow as tf 
 import numpy as np
 import keras
+import math
+from sklearn.preprocessing import StandardScaler
+
+pyautogui.FAILSAFE = False
 
 
+# Load the models and feature names
+xModel = joblib.load('best_svr_x_tuned.pkl')
+yModel = joblib.load('best_svr_y_tuned.pkl')
 
-# Load the scaler before calling move_mouse
-scaler = joblib.load("scaler.pkl")
-feature_names = joblib.load("feature_names.pkl")
-
-loaded_model = keras.models.load_model("my_model2.keras")
-svr_x = joblib.load("best_model_x.pkl")
-svr_y = joblib.load("best_model_y.pkl")
-
-def predict_coordinates(input_data, scaler):
-    """Predicts the coordinates of the mouse pointer using the trained model"""
-    x_pred = svr_x.predict(input_data)
-    y_pred = svr_y.predict(input_data)
-
-    return x_pred, y_pred
+def predict_coordinates(input_data):
+    """Predicts the coordinates of the mouse pointer using the trained SVR models"""
+    
+    # drop target
+    x = xModel.predict(input_data.values.reshape(1, -1))
+    y = yModel.predict(input_data.values.reshape(1, -1))
+    return x, y
 
 
 # Initialize a list to keep track of the previous predicted coordinates
 prev_coords = []
 
-def predict_and_smooth_coordinates(input_data, scaler, n=5):
+def predict_and_smooth_coordinates(input_data, n=5):
     """Predicts the coordinates of the mouse pointer using the trained model and applies a low-pass filter"""
-    x_pred, y_pred = predict_coordinates(input_data, scaler)
+    x_pred, y_pred = predict_coordinates(input_data)
 
     # Add the current predicted coordinates to the list
     prev_coords.append((x_pred, y_pred))
@@ -48,24 +45,96 @@ def predict_and_smooth_coordinates(input_data, scaler, n=5):
 # Update move_mouse function to use predict_and_smooth_coordinates
 def move_mouse(landmark_dict, screen_width, screen_height, x, y):
     df = arrange_data(landmark_dict, screen_width, screen_height, x, y)
-    df.drop('target', axis=1, inplace=True)
 
-    x_smoothed, y_smoothed = predict_and_smooth_coordinates(df, scaler)
+    # Drop 'target' column if present
+    df.drop(columns=['target'], errors='ignore', inplace=True)
+    
+    # Debugging: Print columns to ensure 'target' is removed
+    print("Columns after dropping 'target':", df.columns.tolist())
+
+    x_smoothed, y_smoothed = predict_and_smooth_coordinates(df)
+
+    # Ensure the coordinates stay within screen boundaries
+    x_smoothed = max(0, min(screen_width - 1, x_smoothed))
+    y_smoothed = max(0, min(screen_height - 1, y_smoothed))
 
     pyautogui.moveTo(x_smoothed, y_smoothed, duration=0)
 
 
+def calculate_angles(p1, p2, p3):
+    # Calculate vectors
+    v1 = (p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2])
+    v2 = (p3[0] - p1[0], p3[1] - p1[1], p3[2] - p1[2])
 
+    # Calculate cross product for normal vector
+    normal = (
+        v1[1] * v2[2] - v1[2] * v2[1],
+        v1[2] * v2[0] - v1[0] * v2[2],
+        v1[0] * v2[1] - v1[1] * v2[0]
+    )
+
+    # Calculate pitch (rotation around X-axis)
+    pitch = math.atan2(normal[1], normal[2])
+
+    # Calculate yaw (rotation around Y-axis)
+    yaw = math.atan2(-normal[0], math.sqrt(normal[1] ** 2 + normal[2] ** 2))
+
+    # Calculate roll (rotation around Z-axis)
+    roll = math.atan2(v2[1], v2[0])
+
+    return pitch, yaw, roll
+
+def calculate_head_pose(row):
+    nose = (row['nose_x'], row['nose_y'], row['nose_z'])
+    left_eye = (row['left_eye_x'], row['left_eye_y'], row['left_eye_z'])
+    right_eye = (row['right_eye_x'], row['right_eye_y'], row['right_eye_z'])
+    return calculate_angles(nose, left_eye, right_eye)
+
+def calculate_eye_gaze(row, eye_x, eye_y, eye_z):
+    nose = (row['nose_x'], row['nose_y'], row['nose_z'])
+    eye = (row[eye_x], row[eye_y], row[eye_z])
+
+    # Horizontal gaze
+    horizontal_gaze = math.atan2(eye[0] - nose[0], eye[2] - nose[2])
+
+    # Vertical gaze
+    vertical_gaze = math.atan2(eye[1] - nose[1], eye[2] - nose[2])
+
+    return horizontal_gaze, vertical_gaze
+
+def add_features_to_dataset(df):
+    # Interaction features
+    df['nose_to_left_eye3_times_right_eye'] = df['nose_to_left_eye3'] * df['nose_to_right_eye3']
+    df['left_eye_to_right_eye3_times_nose_to_center2'] = df['left_eye_to_right_eye3'] * df['nose_to_center2']
+
+    # Ratios
+    df['left_eye_to_right_eye_ratio'] = df['left_eye_to_right_eye3'] / (df['nose_to_left_eye3'] + 1e-5)
+    df['nose_to_center_ratio'] = df['nose_to_center2'] / (df['left_eye_to_right_eye3'] + 1e-5)
+
+    # Differences
+    df['forehead_chin_y_diff'] = df['forehead_y'] - df['chin_y']
+    df['left_right_eye_y_diff'] = df['left_eye_y'] - df['right_eye_y']
+
+    # Distances from the center of the screen
+    df['nose_center_screen_dist'] = np.sqrt((df['nose_x'] - df['center_x'])**2 + (df['nose_y'] - df['center_y'])**2)
+    df['left_eye_center_screen_dist'] = np.sqrt((df['left_eye_x'] - df['center_x'])**2 + (df['left_eye_y'] - df['center_y'])**2)
+
+    # Head pose angles
+    df[['head_pitch', 'head_yaw', 'head_roll']] = df.apply(calculate_head_pose, axis=1, result_type='expand')
+
+    # Eye gaze angles
+    df[['left_eye_horizontal_gaze', 'left_eye_vertical_gaze']] = df.apply(
+        lambda row: calculate_eye_gaze(row, 'left_eye_x', 'left_eye_y', 'left_eye_z'), axis=1, result_type='expand'
+    )
+
+    df[['right_eye_horizontal_gaze', 'right_eye_vertical_gaze']] = df.apply(
+        lambda row: calculate_eye_gaze(row, 'right_eye_x', 'right_eye_y', 'right_eye_z'), axis=1, result_type='expand'
+    )
+
+    return df
 
 def arrange_data(landmark_dict, screen_width, screen_height, x, y):
-    """
-    Arranges the data into a dataframe with labeled columns
-    Args:
-        landmark_dict: dictionary of landmark coordinates
-        distance_dict: dictionary of line distances
-    Returns:
-        a ready to save dataframe"""
-
+    """Arranges the data into a dataframe with labeled columns"""
     # Calculate distances between landmarks
     distance_dict = Get_distances(landmark_dict, screen_width, screen_height)
 
@@ -90,7 +159,6 @@ def arrange_data(landmark_dict, screen_width, screen_height, x, y):
         'left_cheek_y': landmark_dict['left_cheek'][1],
         'left_cheek_z': landmark_dict['left_cheek'][2],
         'screen_height': screen_height,
-        'target': (x, y),
         'right_cheek_x': landmark_dict['right_cheek'][0],
         'right_cheek_y': landmark_dict['right_cheek'][1],
         'right_cheek_z': landmark_dict['right_cheek'][2],
@@ -98,15 +166,16 @@ def arrange_data(landmark_dict, screen_width, screen_height, x, y):
         'center_y': landmark_dict['center'][1],
         'center_z': landmark_dict['center'][2],   
     }
-    # add the distances to the dictionary
-    combined_dict |= distance_dict
+    # Add the distances to the dictionary
+    combined_dict.update(distance_dict)
 
     # Create a DataFrame from the dictionary
     df = pd.DataFrame([combined_dict])
 
-    # pop target and add to end
-    target = df.pop('target')
-    df['target'] = target
+    # Add new features based on the input data
+    df = add_features_to_dataset(df)
+
+    df['target'] = f"({x}, {y})"
 
     return df
 
@@ -114,7 +183,7 @@ def save_data(landmark_dict, screen_width, screen_height, x, y):
 
     df = arrange_data(landmark_dict, screen_width, screen_height, x, y)
     # file path
-    file_path = 'data.csv'
+    file_path = 'data2.csv'
     # add the data row to the csv file
     df.to_csv(file_path, mode='a', header=False, index=False)
 

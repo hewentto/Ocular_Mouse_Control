@@ -1,82 +1,90 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_predict
 from sklearn.svm import SVR
-from sklearn.metrics import mean_squared_error, r2_score
-import numpy as np
-from sklearn.svm import SVR
-from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import joblib
+import numpy as np
 
 # Load the dataset
-# Replace the file path with the path to your dataset
-data = pd.read_csv("data.csv")
+data_path = 'data2.csv'  # Update the path as needed
+data = pd.read_csv(data_path)
 
-# Shuffle the dataset
-data = data.sample(frac=1).reset_index(drop=True)
+# Extracting features (X) and target (y) for x and y coordinates
+X = data.drop(columns=['target'])
+y = data['target'].apply(eval)  # Convert the string tuples to actual tuples
+y_x = y.apply(lambda coord: coord[0])
+y_y = y.apply(lambda coord: coord[1])
 
-# Preprocess the target column
-data["target"] = data["target"].apply(lambda s: tuple(map(int, s.strip("()").split(","))))
-data["target_x"] = data["target"].apply(lambda t: t[0])
-data["target_y"] = data["target"].apply(lambda t: t[1])
-data = data.drop("target", axis=1)
+# Split the data into training and test sets
+X_train, X_test, y_x_train, y_x_test, y_y_train, y_y_test = train_test_split(X, y_x, y_y, test_size=0.2, random_state=42)
 
-# Split the dataset into training and testing sets
-X = data.drop(["target_x", "target_y"], axis=1)
-y_x = data["target_x"]
-y_y = data["target_y"]
+# Define the base models
+svr_model = make_pipeline(StandardScaler(), SVR())
+gbr_model = GradientBoostingRegressor(random_state=42)
 
-X_train, X_test, y_x_train, y_x_test = train_test_split(X, y_x, test_size=0.2, random_state=42)
-_, _, y_y_train, y_y_test = train_test_split(X, y_y, test_size=0.2, random_state=42)
-
-# Create a pipeline with StandardScaler and SVR
-pipeline = Pipeline([
-    ('scaler', StandardScaler()),
-    ('svr', SVR())
-])
-
-# Define the hyperparameter search space
-param_grid = {
-    'svr__C': np.logspace(-3, 3, 7),
-    'svr__epsilon': np.logspace(-3, 3, 7),
-    'svr__kernel': ['poly', 'rbf', 'sigmoid']
+# Fine-tuning SVR with increased regularization
+svr_param_grid = {
+    'svr__C': [1000, 5000, 10000],  # Increased regularization
+    'svr__epsilon': [0.001, 0.01, 0.1],
+    'svr__gamma': [0.01, 'auto', 0.1]
 }
 
-# Create the GridSearchCV object
-grid_search = GridSearchCV(pipeline, param_grid, scoring='neg_mean_squared_error', cv=5, verbose=2, n_jobs=-1)
+# Fine-tuning Gradient Boosting with increased regularization
+gbr_param_grid = {
+    'learning_rate': [0.01, 0.05, 0.1],  # More conservative learning rates
+    'max_depth': [3, 5, 7],
+    'n_estimators': [300, 500, 700]
+}
 
-# Fit the GridSearchCV object to the training data
-grid_search.fit(X_train, y_x_train)
+# Refit and tune SVR and Gradient Boosting with cross-validation
+best_svr_x = GridSearchCV(svr_model, svr_param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+best_svr_y = GridSearchCV(svr_model, svr_param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
 
-# Print the best hyperparameters found
-print('Best hyperparameters:', grid_search.best_params_)
+best_gbr_x = GridSearchCV(gbr_model, gbr_param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+best_gbr_y = GridSearchCV(gbr_model, gbr_param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
 
-# Evaluate the best model on the test set
-best_model_x = grid_search.best_estimator_
-y_x_pred = best_model_x.predict(X_test)
-mse_x = mean_squared_error(y_x_test, y_x_pred)
-r2_x = r2_score(y_x_test, y_x_pred)
+# Fit the models with cross-validation
+best_svr_x.fit(X_train, y_x_train)
+best_svr_y.fit(X_train, y_y_train)
 
-print('Mean squared error for x predictions:', mse_x)
-print('R2 score for x predictions:', r2_x)
+best_gbr_x.fit(X_train, y_x_train)
+best_gbr_y.fit(X_train, y_y_train)
 
-# Fit the GridSearchCV object to the training data for y
-grid_search.fit(X_train, y_y_train)
+# Predictions with cross-validation
+y_x_pred_svr = cross_val_predict(best_svr_x.best_estimator_, X_test, y_x_test, cv=5)
+y_y_pred_svr = cross_val_predict(best_svr_y.best_estimator_, X_test, y_y_test, cv=5)
 
-# Print the best hyperparameters found for y
-print('Best hyperparameters for y:', grid_search.best_params_)
+y_x_pred_gbr = cross_val_predict(best_gbr_x.best_estimator_, X_test, y_x_test, cv=5)
+y_y_pred_gbr = cross_val_predict(best_gbr_y.best_estimator_, X_test, y_y_test, cv=5)
 
-# Evaluate the best model on the test set for y
-best_model_y = grid_search.best_estimator_
-y_y_pred = best_model_y.predict(X_test)
-mse_y = mean_squared_error(y_y_test, y_y_pred)
-r2_y = r2_score(y_y_test, y_y_pred)
+# Ensembling: Average of SVR and Gradient Boosting predictions
+y_x_pred_ensemble = (y_x_pred_svr + y_x_pred_gbr) / 2
+y_y_pred_ensemble = (y_y_pred_svr + y_y_pred_gbr) / 2
 
-print('R2 score for x predictions:', r2_x)
-print('R2 score for y predictions:', r2_y)
+# Evaluate the ensemble
+mse_x_ensemble = mean_squared_error(y_x_test, y_x_pred_ensemble)
+mae_x_ensemble = mean_absolute_error(y_x_test, y_x_pred_ensemble)
+r2_x_ensemble = r2_score(y_x_test, y_x_pred_ensemble)
 
-# Save the best model to disk
-joblib.dump(best_model_x, 'best_model_x.pkl')
-joblib.dump(best_model_y, 'best_model_y.pkl')
+mse_y_ensemble = mean_squared_error(y_y_test, y_y_pred_ensemble)
+mae_y_ensemble = mean_absolute_error(y_y_test, y_y_pred_ensemble)
+r2_y_ensemble = r2_score(y_y_test, y_y_pred_ensemble)
 
+# Save the best models and ensemble predictions
+joblib.dump(best_svr_x.best_estimator_, 'best_svr_x_tuned_regularized.pkl')
+joblib.dump(best_svr_y.best_estimator_, 'best_svr_y_tuned_regularized.pkl')
+joblib.dump(best_gbr_x.best_estimator_, 'best_gbr_x_tuned_regularized.pkl')
+joblib.dump(best_gbr_y.best_estimator_, 'best_gbr_y_tuned_regularized.pkl')
+
+# Print ensemble results
+ensemble_results = {
+    'y_x': {'MSE': mse_x_ensemble, 'MAE': mae_x_ensemble, 'R2': r2_x_ensemble},
+    'y_y': {'MSE': mse_y_ensemble, 'MAE': mae_y_ensemble, 'R2': r2_y_ensemble}
+}
+
+print("Ensemble Results after Regularization and Cross-Validation:")
+print("y_x - MSE:", ensemble_results['y_x']['MSE'], ", MAE:", ensemble_results['y_x']['MAE'], ", R2:", ensemble_results['y_x']['R2'])
+print("y_y - MSE:", ensemble_results['y_y']['MSE'], ", MAE:", ensemble_results['y_y']['MAE'], ", R2:", ensemble_results['y_y']['R2'])

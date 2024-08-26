@@ -10,7 +10,7 @@ screen_width = monitor.width
 screen_height = monitor.height
 
 # take all the "target" x and y coordinates form data.csv and put them into a dataframe
-df = pd.read_csv('data.csv')
+df = pd.read_csv('data2.csv')
 
 # take the x and y coordinates from the 'target' tuple and put them into a list
 target_x = []
@@ -26,7 +26,7 @@ fig = plt.figure(figsize=(screen_width / 80, screen_height / 80), dpi=80)
 # now create a heatmap of the target x and y coordinates
 
 # create a heatmap of the target x coordinates
-sns.kdeplot(x=target_x, y=target_y, fill=True, shade_lowest=False)
+sns.kdeplot(x=target_x, y=target_y, fill=True, thresh=False)
 
 # set the min and max limits for both axes based on the data
 plt.xlim(min(target_x), max(target_x))

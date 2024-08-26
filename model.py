@@ -1,3 +1,4 @@
+import ctypes
 import cv2 as cv
 import mediapipe as mp
 from pynput.mouse import Button, Controller, Listener
@@ -86,9 +87,10 @@ def draw_landmarks(image, results):
 
 # Define the main function
 def main():
-    # Define the screen size
-    screen_width = 1920
-    screen_height = 1080
+    # Find and define monitor width and height
+    user32 = ctypes.windll.user32
+    screen_width = user32.GetSystemMetrics(0)
+    screen_height = user32.GetSystemMetrics(1)
 
     # Initialize the face mesh
     face_mesh = initialize_face_mesh()

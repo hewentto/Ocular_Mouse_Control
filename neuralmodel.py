@@ -3,15 +3,12 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping
+import keras
 import joblib
 
 
 # Replace this with the path to your dataset file
-data_file = 'data.csv'
+data_file = 'data2.csv'
 
 # Load the dataset
 data = pd.read_csv(data_file)
@@ -40,23 +37,23 @@ feature_names = data.iloc[:, :-2].columns
 joblib.dump(scaler, "scaler.pkl")
 joblib.dump(feature_names, "feature_names.pkl")
 # Create a sequential model
-model = Sequential()
+model = keras.models.Sequential()
 
 # Add input layer
-model.add(Dense(256, activation='relu', input_dim=X_train_scaled.shape[1]))
+model.add(keras.layers.Dense(256, activation='relu', input_dim=X_train_scaled.shape[1]))
 
 # Add hidden layers
-model.add(Dense(512, activation='relu'))
-model.add(Dense(256, activation='relu'))
+model.add(keras.layers.Dense(512, activation='relu'))
+model.add(keras.layers.Dense(256, activation='relu'))
 
 # Add output layer with 2 output units (for x and y coordinates)
-model.add(Dense(2))
+model.add(keras.layers.Dense(2))
 
-optimizer = Adam(learning_rate=0.001)
+optimizer = keras.optimizers.Adam(learning_rate=0.001)
 model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
 
 # Define early stopping
-early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
 model.fit(X_train_scaled, y_train, batch_size=32, epochs=200, validation_data=(X_test_scaled, y_test), callbacks=[early_stopping])
 
@@ -66,4 +63,4 @@ print(f"Test Set Mean Squared Error: {loss:.4f}")
 print(f"Test Set Mean Absolute Error: {mae:.4f}")
 
 # Save the trained model to a file
-model.save("my_model.h5")
+model.save("my_model.keras")
